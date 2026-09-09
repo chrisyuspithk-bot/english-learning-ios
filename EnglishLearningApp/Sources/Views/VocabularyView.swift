@@ -94,7 +94,7 @@ struct VocabularyView: View {
 
     private func partOfSpeechBadge(_ pos: String) -> some View {
         Text(pos)
-            .font(.caption2)
+            .font(.caption)
             .fontWeight(.semibold)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
