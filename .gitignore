@@ -14,6 +14,5 @@ build/
 .build/
 .swiftpm/
 
-# XcodeGen — the project is generated locally from project.yml
-*.xcodeproj
-*.xcworkspace
+# The generated .xcodeproj is committed so the project can be opened directly.
+# Regenerate with `xcodegen generate` if you add/remove source files.
