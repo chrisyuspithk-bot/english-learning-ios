@@ -16,3 +16,15 @@ build/
 
 # The generated .xcodeproj is committed so the project can be opened directly.
 # Regenerate with `xcodegen generate` if you add/remove source files.
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/data/
+.env
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
