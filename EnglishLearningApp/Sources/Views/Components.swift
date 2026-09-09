@@ -4,11 +4,16 @@ import SwiftUI
 
 struct Card<Content: View>: View {
     var accent: Color = Theme.primary
-    let content: () -> Content
+    private let content: Content
+
+    init(accent: Color = Theme.primary, @ViewBuilder content: () -> Content) {
+        self.accent = accent
+        self.content = content()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            content()
+            content
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
