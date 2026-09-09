@@ -50,8 +50,7 @@ struct VocabularyView: View {
                         Image(systemName: "speaker.wave.2.fill")
                         Text("Listen")
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Theme.primary.opacity(0.12))
@@ -64,8 +63,7 @@ struct VocabularyView: View {
                         Image(systemName: "mic.fill")
                         Text("Practise")
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Color(hex: chapter.colorHex).opacity(0.15))
