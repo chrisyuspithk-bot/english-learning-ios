@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Xcode user data & build artifacts
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# XcodeGen — the project is generated locally from project.yml
+*.xcodeproj
+*.xcworkspace
