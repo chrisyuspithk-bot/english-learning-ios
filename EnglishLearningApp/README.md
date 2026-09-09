@@ -67,7 +67,23 @@ EnglishLearningApp/
 
 ## How to run
 
-### Option A — XcodeGen (recommended)
+### Option A — open directly (easiest)
+
+The `.xcodeproj` is committed, so no extra tools are needed:
+
+```bash
+git clone https://github.com/chrisyuspithk-bot/english-learning-ios.git
+cd english-learning-ios/EnglishLearningApp
+open EnglishLearningApp.xcodeproj
+```
+
+Then in Xcode: choose a simulator or your iPhone as the run destination, set
+your **Signing Team** (Signing & Capabilities → Team) if running on a device,
+and press **Run** (⌘R).
+
+### Option B — regenerate with XcodeGen
+
+If you add or remove source files, regenerate the project from `project.yml`:
 
 ```bash
 brew install xcodegen
@@ -76,14 +92,13 @@ xcodegen generate
 open EnglishLearningApp.xcodeproj
 ```
 
-### Option B — manual
+### Option C — create the project manually
 
 1. In Xcode: **File → New → Project → iOS → App**.
-2. Set **Interface** to *SwiftUI* (or Storyboard) and **Life Cycle** to
-   *UIKit App Delegate* (the POC uses a `SceneDelegate`).
+2. Set **Interface** to *SwiftUI* and **Life Cycle** to *UIKit App Delegate*.
 3. Set **Deployment Target** to **iOS 13.0**.
-4. Delete the generated template files, then drag in the `Sources/` and
-   `Resources/` folders (create groups, copy items if needed).
+4. Delete the template files, then drag in the `Sources/` and `Resources/`
+   folders (create groups, copy items if needed).
 5. Make sure **AVFoundation.framework** and **Speech.framework** are linked
    (Project → target → General → Frameworks, Libraries, and Embedded Content).
 
