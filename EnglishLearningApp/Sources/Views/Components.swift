@@ -2,13 +2,13 @@ import SwiftUI
 
 // MARK: - Card container
 
-struct Card<Content: View>: View {
-    var accent: Color = Theme.primary
-    private let content: Content
+struct Card: View {
+    var accent: Color
+    private let content: AnyView
 
-    init(accent: Color = Theme.primary, @ViewBuilder content: () -> Content) {
+    init<C: View>(accent: Color = Theme.primary, @ViewBuilder content: () -> C) {
         self.accent = accent
-        self.content = content()
+        self.content = AnyView(content())
     }
 
     var body: some View {
