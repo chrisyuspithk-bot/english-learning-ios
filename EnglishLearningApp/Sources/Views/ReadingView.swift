@@ -36,8 +36,7 @@ struct ReadingView: View {
                         Image(systemName: "speaker.wave.2.fill")
                         Text("Read aloud")
                     }
-                    .font(.footnote)
-                    .fontWeight(.semibold)
+                    .font(.footnote.weight(.semibold))
                     .foregroundColor(Theme.primary)
                 }
             }
