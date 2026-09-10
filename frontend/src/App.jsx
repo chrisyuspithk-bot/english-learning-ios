@@ -13,10 +13,10 @@ function ErrorBox({ msg }) {
   return <div className="error">⚠️ {msg}</div>
 }
 
-function Modal({ title, children, onClose }) {
+function Modal({ title, children, onClose, wide }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className={'modal' + (wide ? ' modal-wide' : '')} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button className="icon-btn" onClick={onClose}>✕</button>
@@ -544,14 +544,14 @@ function ImportStudents({ classes, onDone }) {
 function Textbooks() {
   const state = useAsync(() => api.get('/admin/textbooks'), [])
   const forms = useAsync(() => api.get('/admin/forms'), [])
-  const [uploading, setUploading] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [openBook, setOpenBook] = useState(null)
   const [editing, setEditing] = useState(null)
   const [assigning, setAssigning] = useState(null)
 
   return (
     <div>
-      <Header title="Textbooks" onAdd={() => setUploading(true)} />
+      <Header title="Textbooks" onAdd={() => setCreating(true)} />
       {state.loading ? <Spinner /> : state.error ? <ErrorBox msg={state.error} /> : (
         <Table>
           {state.data.map((t) => (
@@ -568,23 +568,50 @@ function Textbooks() {
           ))}
         </Table>
       )}
-      {uploading && <UploadBook onDone={() => { setUploading(false); state.reload() }} />}
+      {creating && <NewTextbook onDone={() => { setCreating(false); state.reload() }} />}
       {openBook && (
-        <Chapters book={openBook} forms={forms.data || []}
+        <Chapters book={openBook}
           onClose={() => setOpenBook(null)}
-          onEdit={setEditing} onAssign={setAssigning} onRefresh={() => { state.reload(); setOpenBook((b) => b && { ...b }) }} />
+          onEdit={setEditing} onAssign={setAssigning}
+          onRefresh={state.reload} />
       )}
-      {editing && <ChapterEditor chapter={editing} onDone={() => { setEditing(null) }} />}
+      {editing && <ChapterEditor chapter={editing} onDone={() => { setEditing(null); state.reload() }} />}
       {assigning && <AssignChapter chapter={assigning} forms={forms.data || []} onDone={() => setAssigning(null)} />}
     </div>
   )
 }
 
-function UploadBook({ onDone }) {
-  const [file, setFile] = useState(null)
+function NewTextbook({ onDone }) {
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('English')
   const [level, setLevel] = useState('Primary 5')
+  const [error, setError] = useState(null)
+
+  async function save() {
+    try {
+      await api.post('/admin/textbooks', { title, subject, level })
+      onDone()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  return (
+    <Modal title="New textbook" onClose={onDone}>
+      <p className="hint">Create a textbook (e.g. "Primary 5 English"), then upload each chapter separately.</p>
+      <Field label="Title *"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Primary 5 English" /></Field>
+      <Field label="Subject"><input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
+      <Field label="Level"><input value={level} onChange={(e) => setLevel(e.target.value)} /></Field>
+      {error && <ErrorBox msg={error} />}
+      <button className="primary" onClick={save}>Create</button>
+    </Modal>
+  )
+}
+
+function UploadChapter({ book, onDone }) {
+  const [file, setFile] = useState(null)
+  const [number, setNumber] = useState('')
+  const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -594,11 +621,11 @@ function UploadBook({ onDone }) {
     setError(null)
     const fd = new FormData()
     fd.append('file', file)
+    fd.append('textbook_id', String(book.id))
+    fd.append('number', number)
     fd.append('title', title)
-    fd.append('subject', subject)
-    fd.append('level', level)
     try {
-      const data = await upload('/admin/textbooks/upload', fd)
+      await upload('/admin/chapters/upload', fd)
       onDone()
     } catch (e) {
       setError(e.message)
@@ -608,24 +635,26 @@ function UploadBook({ onDone }) {
   }
 
   return (
-    <Modal title="Upload textbook (RAG → structured chapters)" onClose={onDone}>
+    <Modal title={`Upload a chapter → "${book.title}"`} onClose={onDone}>
       <p className="hint">
-        Upload a PDF, TXT or Word document. The backend extracts the text, splits it into
-        chapters and uses an LLM to produce vocabulary, grammar, exercises and a reading passage.
+        Upload one chapter at a time (PDF / TXT / Word). The LLM will generate vocabulary,
+        grammar, exercises and a reading passage with 5 questions — all editable afterwards.
       </p>
-      <Field label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Primary 5 English" /></Field>
-      <Field label="Subject"><input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
-      <Field label="Level"><input value={level} onChange={(e) => setLevel(e.target.value)} /></Field>
+      <div className="grid-2">
+        <Field label="Chapter number (auto if blank)"><input type="number" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="auto" /></Field>
+        <Field label="Chapter title (auto if blank)"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="auto" /></Field>
+      </div>
       <Field label="File"><input type="file" accept=".pdf,.txt,.md,.docx" onChange={(e) => setFile(e.target.files[0])} /></Field>
       {error && <ErrorBox msg={error} />}
-      <button className="primary" onClick={submit} disabled={busy}>{busy ? 'Processing with LLM…' : 'Upload & process'}</button>
+      <button className="primary" onClick={submit} disabled={busy}>{busy ? 'Processing with LLM…' : 'Upload & generate'}</button>
     </Modal>
   )
 }
 
-function Chapters({ book, forms, onClose, onEdit, onAssign, onRefresh }) {
+function Chapters({ book, onClose, onEdit, onAssign, onRefresh }) {
   const [chapters, setChapters] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -637,8 +666,12 @@ function Chapters({ book, forms, onClose, onEdit, onAssign, onRefresh }) {
   useEffect(() => { load() }, [book.id])
 
   return (
-    <Modal title={`Chapters — ${book.title}`} onClose={onClose}>
-      {loading ? <Spinner /> : chapters.length === 0 ? <p className="muted">No chapters yet.</p> : (
+    <Modal title={`Chapters — ${book.title}`} onClose={onClose} wide>
+      <div className="toolbar">
+        <span className="muted">{chapters ? chapters.length : 0} chapter(s)</span>
+        <button className="primary" onClick={() => setUploading(true)}>+ Upload chapter</button>
+      </div>
+      {loading ? <Spinner /> : chapters.length === 0 ? <p className="muted">No chapters yet — upload the first chapter.</p> : (
         chapters.map((c) => (
           <div className="chapter-row" key={c.id}>
             <div>
@@ -655,35 +688,225 @@ function Chapters({ book, forms, onClose, onEdit, onAssign, onRefresh }) {
           </div>
         ))
       )}
+      {uploading && <UploadChapter book={book} onDone={() => { setUploading(false); load(); onRefresh() }} />}
+    </Modal>
+  )
+}
+
+// --- chapter content helpers ---
+function replaceAt(arr, i, item) { return arr.map((x, idx) => idx === i ? item : x) }
+function removeAt(arr, i) { return arr.filter((_, idx) => idx !== i) }
+
+function normVocab(v) {
+  return { word: v?.word || '', phonetic: v?.phonetic || '', partOfSpeech: v?.partOfSpeech || '', meaning: v?.meaning || '', definition: v?.definition || '', example: v?.example || '' }
+}
+function normGrammar(g) {
+  return { title: g?.title || '', explanation: g?.explanation || '', rule: g?.rule || '', examples: Array.isArray(g?.examples) ? g.examples : [] }
+}
+function normMc(q) {
+  const options = Array.isArray(q?.options) && q.options.length ? [...q.options] : ['', '', '', '']
+  while (options.length < 4) options.push('')
+  return { prompt: q?.prompt || '', options, correctIndex: Number(q?.correctIndex) || 0, explanation: q?.explanation || '' }
+}
+const blankVocab = () => ({ word: '', phonetic: '', partOfSpeech: '', meaning: '', definition: '', example: '' })
+const blankGrammar = () => ({ title: '', explanation: '', rule: '', examples: [] })
+const blankMc = () => ({ prompt: '', options: ['', '', '', ''], correctIndex: 0, explanation: '' })
+
+function Section({ title, onAdd, children }) {
+  return (
+    <div className="section">
+      <div className="section-head">
+        <h3>{title}</h3>
+        <button className="ghost" onClick={onAdd}>+ Add</button>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function VocabCard({ item, onChange, onRemove }) {
+  function set(k, v) { onChange({ ...item, [k]: v }) }
+  return (
+    <div className="content-card">
+      <div className="card-row">
+        <input value={item.word || ''} placeholder="Word" onChange={(e) => set('word', e.target.value)} />
+        <input value={item.phonetic || ''} placeholder="/ˈfəʊ.net.ɪk/" onChange={(e) => set('phonetic', e.target.value)} />
+        <input value={item.partOfSpeech || ''} placeholder="noun / verb…" onChange={(e) => set('partOfSpeech', e.target.value)} />
+        <button className="icon-btn" onClick={onRemove}>✕</button>
+      </div>
+      <input value={item.meaning || ''} placeholder="Meaning (e.g. 健康)" onChange={(e) => set('meaning', e.target.value)} />
+      <input value={item.definition || ''} placeholder="Simple English definition" onChange={(e) => set('definition', e.target.value)} />
+      <input value={item.example || ''} placeholder="Example sentence" onChange={(e) => set('example', e.target.value)} />
+    </div>
+  )
+}
+
+function GrammarCard({ item, onChange, onRemove }) {
+  function set(k, v) { onChange({ ...item, [k]: v }) }
+  return (
+    <div className="content-card">
+      <div className="card-row">
+        <input value={item.title || ''} placeholder="Grammar point" onChange={(e) => set('title', e.target.value)} />
+        <button className="icon-btn" onClick={onRemove}>✕</button>
+      </div>
+      <input value={item.explanation || ''} placeholder="Explanation" onChange={(e) => set('explanation', e.target.value)} />
+      <input value={item.rule || ''} placeholder="Key rule" onChange={(e) => set('rule', e.target.value)} />
+      <textarea rows={3} value={(item.examples || []).join('\n')} placeholder={'Examples (one per line)'} onChange={(e) => set('examples', e.target.value.split('\n'))} />
+    </div>
+  )
+}
+
+function McCard({ q, onChange, onRemove }) {
+  const options = q.options && q.options.length ? q.options : ['', '', '', '']
+  function set(k, v) { onChange({ ...q, [k]: v }) }
+  function setOpt(i, v) { onChange({ ...q, options: replaceAt(options, i, v) }) }
+  return (
+    <div className="content-card">
+      <div className="card-row">
+        <input value={q.prompt || ''} placeholder="Question" onChange={(e) => set('prompt', e.target.value)} />
+        <button className="icon-btn" onClick={onRemove}>✕</button>
+      </div>
+      {options.map((opt, i) => (
+        <div className="opt-row" key={i}>
+          <label className="opt-radio">
+            <input type="radio" checked={Number(q.correctIndex) === i} onChange={() => set('correctIndex', i)} />
+            <span>{String.fromCharCode(65 + i)}</span>
+          </label>
+          <input value={opt || ''} placeholder={`Option ${String.fromCharCode(65 + i)}`} onChange={(e) => setOpt(i, e.target.value)} />
+        </div>
+      ))}
+      <input value={q.explanation || ''} placeholder="Explanation (why it is correct)" onChange={(e) => set('explanation', e.target.value)} />
+    </div>
+  )
+}
+
+function McPreview({ q }) {
+  return (
+    <li className="mc-preview">
+      <div className="q">{q.prompt}</div>
+      {(q.options || []).map((o, i) => (
+        <div key={i} className={Number(q.correctIndex) === i ? 'opt correct' : 'opt'}>{String.fromCharCode(65 + i)}. {o}</div>
+      ))}
+      {q.explanation && <div className="muted small">💡 {q.explanation}</div>}
+    </li>
+  )
+}
+
+function ChapterPreview({ chapter, onBack, onClose }) {
+  return (
+    <Modal title={`Preview — ${chapter.title}`} onClose={onClose} wide>
+      <div className="preview">
+        <h2>{chapter.title}</h2>
+        {chapter.subtitle && <p className="muted">{chapter.subtitle}</p>}
+
+        <h3>Vocabulary</h3>
+        <div className="vocab-list">
+          {(chapter.vocabulary || []).map((v, i) => (
+            <div className="vocab-preview" key={i}>
+              <div className="vocab-head"><strong>{v.word}</strong> <span className="phon">{v.phonetic}</span> <span className="pos">{v.partOfSpeech}</span></div>
+              <div className="muted">{v.meaning}</div>
+              <div className="small">{v.definition}</div>
+              {v.example && <div className="small example">“{v.example}”</div>}
+            </div>
+          ))}
+        </div>
+
+        <h3>Grammar</h3>
+        {(chapter.grammar || []).map((g, i) => (
+          <div className="grammar-preview" key={i}>
+            <strong>{g.title}</strong>
+            <div>{g.explanation}</div>
+            <ul>{(g.examples || []).map((e, j) => <li key={j}>{e}</li>)}</ul>
+          </div>
+        ))}
+
+        <h3>Exercises</h3>
+        <ol>{(chapter.exercises || []).map((q, i) => <McPreview key={i} q={q} />)}</ol>
+
+        <h3>Reading{chapter.reading?.title ? `: ${chapter.reading.title}` : ''}</h3>
+        {(chapter.reading?.paragraphs || []).map((p, i) => <p key={i}>{p}</p>)}
+        <ol>{(chapter.reading?.questions || []).map((q, i) => <McPreview key={i} q={q} />)}</ol>
+      </div>
+      <button className="ghost" onClick={onBack}>← Back to edit</button>
     </Modal>
   )
 }
 
 function ChapterEditor({ chapter, onDone }) {
-  const [title, setTitle] = useState(chapter.title)
-  const [subtitle, setSubtitle] = useState(chapter.subtitle || '')
-  const [json, setJson] = useState(JSON.stringify({ vocabulary: chapter.vocabulary, grammar: chapter.grammar, exercises: chapter.exercises, reading: chapter.reading }, null, 2))
+  const [data, setData] = useState(() => ({
+    title: chapter.title || '',
+    subtitle: chapter.subtitle || '',
+    vocabulary: (chapter.vocabulary || []).map(normVocab),
+    grammar: (chapter.grammar || []).map(normGrammar),
+    exercises: (chapter.exercises || []).map(normMc),
+    reading: {
+      title: chapter.reading?.title || '',
+      paragraphs: chapter.reading?.paragraphs || [],
+      questions: (chapter.reading?.questions || []).map(normMc),
+    },
+  }))
+  const [preview, setPreview] = useState(false)
   const [error, setError] = useState(null)
+
+  function set(k, v) { setData((d) => ({ ...d, [k]: v })) }
+  function setReading(k, v) { setData((d) => ({ ...d, reading: { ...d.reading, [k]: v } })) }
 
   async function save() {
     try {
-      const content = JSON.parse(json)
-      await api.put(`/admin/chapters/${chapter.id}`, { title, subtitle, ...content })
+      await api.put(`/admin/chapters/${chapter.id}`, data)
       onDone()
     } catch (e) {
       setError(e.message)
     }
   }
 
+  if (preview) return <ChapterPreview chapter={data} onBack={() => setPreview(false)} onClose={onDone} />
+
   return (
-    <Modal title={`Edit chapter — ${chapter.title}`} onClose={onDone}>
-      <Field label="Title"><input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-      <Field label="Subtitle"><input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} /></Field>
-      <Field label="Content (JSON)">
-        <textarea className="json" value={json} onChange={(e) => setJson(e.target.value)} rows={18} />
-      </Field>
+    <Modal title={`Edit chapter ${chapter.number} — ${chapter.title}`} onClose={onDone} wide>
+      <div className="toolbar">
+        <button className="ghost" onClick={() => setPreview(true)}>👁 Preview</button>
+      </div>
+      <div className="grid-2">
+        <Field label="Title"><input value={data.title} onChange={(e) => set('title', e.target.value)} /></Field>
+        <Field label="Subtitle"><input value={data.subtitle} onChange={(e) => set('subtitle', e.target.value)} /></Field>
+      </div>
+
+      <Section title={`Vocabulary (${data.vocabulary.length})`} onAdd={() => set('vocabulary', [...data.vocabulary, blankVocab()])}>
+        {data.vocabulary.map((v, i) => (
+          <VocabCard key={i} item={v} onChange={(nv) => set('vocabulary', replaceAt(data.vocabulary, i, nv))} onRemove={() => set('vocabulary', removeAt(data.vocabulary, i))} />
+        ))}
+      </Section>
+
+      <Section title={`Grammar (${data.grammar.length})`} onAdd={() => set('grammar', [...data.grammar, blankGrammar()])}>
+        {data.grammar.map((g, i) => (
+          <GrammarCard key={i} item={g} onChange={(ng) => set('grammar', replaceAt(data.grammar, i, ng))} onRemove={() => set('grammar', removeAt(data.grammar, i))} />
+        ))}
+      </Section>
+
+      <Section title={`Exercises (${data.exercises.length})`} onAdd={() => set('exercises', [...data.exercises, blankMc()])}>
+        {data.exercises.map((q, i) => (
+          <McCard key={i} q={q} onChange={(nq) => set('exercises', replaceAt(data.exercises, i, nq))} onRemove={() => set('exercises', removeAt(data.exercises, i))} />
+        ))}
+      </Section>
+
+      <Section title="Reading" onAdd={() => setReading('paragraphs', [...data.reading.paragraphs, ''])}>
+        <Field label="Passage title"><input value={data.reading.title} onChange={(e) => setReading('title', e.target.value)} /></Field>
+        {data.reading.paragraphs.map((p, i) => (
+          <div className="card-row" key={i}>
+            <textarea rows={2} value={p} placeholder={`Paragraph ${i + 1}`} onChange={(e) => setReading('paragraphs', replaceAt(data.reading.paragraphs, i, e.target.value))} />
+            <button className="icon-btn" onClick={() => setReading('paragraphs', removeAt(data.reading.paragraphs, i))}>✕</button>
+          </div>
+        ))}
+        <div className="subhead">Comprehension questions ({data.reading.questions.length})</div>
+        {data.reading.questions.map((q, i) => (
+          <McCard key={i} q={q} onChange={(nq) => setReading('questions', replaceAt(data.reading.questions, i, nq))} onRemove={() => setReading('questions', removeAt(data.reading.questions, i))} />
+        ))}
+        <button className="ghost" onClick={() => setReading('questions', [...data.reading.questions, blankMc()])}>+ Add question</button>
+      </Section>
+
       {error && <ErrorBox msg={error} />}
-      <button className="primary" onClick={save}>Save</button>
+      <button className="primary" onClick={save}>Save chapter</button>
     </Modal>
   )
 }

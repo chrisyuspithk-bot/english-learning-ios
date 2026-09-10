@@ -417,11 +417,173 @@ td button {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
 }
 
+.modal-wide {
+  max-width: 920px;
+}
+
 .modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+/* ---------- chapter editor / preview ---------- */
+
+.section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: #fafbfd;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-head h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.content-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--surface);
+}
+
+.card-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.card-row input,
+.card-row textarea {
+  flex: 1;
+}
+
+.card-row .icon-btn {
+  flex: 0 0 auto;
+}
+
+.opt-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.opt-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.opt-radio input {
+  width: auto;
+}
+
+.subhead {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 12px 0 8px;
+}
+
+.preview h2 {
+  margin: 0 0 4px;
+}
+
+.preview h3 {
+  margin: 22px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.vocab-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.vocab-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.vocab-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.vocab-head strong {
+  font-size: 16px;
+}
+
+.phon {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pos {
+  font-style: italic;
+  color: var(--primary);
+  font-size: 13px;
+}
+
+.example {
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.grammar-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--surface);
+}
+
+.grammar-preview ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.mc-preview {
+  margin-bottom: 12px;
+}
+
+.mc-preview .q {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mc-preview .opt {
+  padding: 2px 0;
+}
+
+.mc-preview .opt.correct {
+  color: var(--success);
+  font-weight: 600;
 }
 
 /* ---------- responsive ---------- */
@@ -463,5 +625,14 @@ td button {
 
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .card-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-row .icon-btn {
+    align-self: flex-end;
   }
 }
