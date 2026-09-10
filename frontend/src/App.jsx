@@ -549,7 +549,6 @@ function Textbooks() {
   const [creating, setCreating] = useState(false)
   const [openBook, setOpenBook] = useState(null)
   const [editing, setEditing] = useState(null)
-  const [assigning, setAssigning] = useState(null)
 
   return (
     <div>
@@ -574,11 +573,10 @@ function Textbooks() {
       {openBook && (
         <Chapters book={openBook}
           onClose={() => setOpenBook(null)}
-          onEdit={setEditing} onAssign={setAssigning}
+          onEdit={setEditing}
           onRefresh={state.reload} />
       )}
       {editing && <ChapterEditor chapter={editing} onDone={() => { setEditing(null); state.reload() }} />}
-      {assigning && <AssignChapter chapter={assigning} forms={forms.data || []} onDone={() => setAssigning(null)} />}
     </div>
   )
 }
@@ -658,7 +656,7 @@ function UploadChapter({ book, onDone }) {
   )
 }
 
-function Chapters({ book, onClose, onEdit, onAssign, onRefresh }) {
+function Chapters({ book, onClose, onEdit, onRefresh }) {
   const [chapters, setChapters] = useState(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -689,7 +687,6 @@ function Chapters({ book, onClose, onEdit, onAssign, onRefresh }) {
             </div>
             <div className="row-actions">
               <button className="link" onClick={() => onEdit(c)}>Edit</button>
-              <button className="link" onClick={() => onAssign(c)}>Assign to forms</button>
               <button className="link danger-text" onClick={async () => { await remove(`/admin/chapters/${c.id}`, load) }}>Delete</button>
             </div>
           </div>
@@ -916,31 +913,6 @@ function ChapterEditor({ chapter, onDone }) {
 
       {error && <ErrorBox msg={error} />}
       <button className="primary" onClick={save}>Save chapter</button>
-    </Modal>
-  )
-}
-
-function AssignChapter({ chapter, forms, onDone }) {
-  const [selected, setSelected] = useState(chapter.assigned_form_ids || [])
-
-  function toggle(id) {
-    setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id])
-  }
-
-  async function save() {
-    await api.post(`/admin/chapters/${chapter.id}/assign`, { form_ids: selected })
-    onDone()
-  }
-
-  return (
-    <Modal title={`Assign "${chapter.title}" to forms`} onClose={onDone}>
-      {forms.length === 0 ? <p className="muted">No forms yet. Create a form first.</p> : forms.map((f) => (
-        <label className="check" key={f.id}>
-          <input type="checkbox" checked={selected.includes(f.id)} onChange={() => toggle(f.id)} />
-          {f.name}
-        </label>
-      ))}
-      <button className="primary" onClick={save}>Save assignment</button>
     </Modal>
   )
 }
