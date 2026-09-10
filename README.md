@@ -77,14 +77,13 @@ To reduce admin effort: **bulk import students from CSV**, **bulk-create classes
 
 ## Textbook pipeline (Goal B)
 
-Upload a PDF / TXT / DOCX. The backend:
+Teachers upload **one chapter at a time**. For each chapter, upload a PDF / TXT / DOCX:
 
 1. Extracts raw text (`pypdf` / `python-docx` / plain text).
-2. Splits it into chapters by `Unit/Chapter/Lesson N` headings.
-3. Sends each chunk to the LLM (OpenAI-compatible) with a strict JSON schema.
-4. Stores structured chapters — vocabulary, grammar, MC exercises, reading passage
-   with 5 comprehension questions — which can be viewed/edited in the portal and
-   downloaded by the app.
+2. Sends the chapter text to the LLM (OpenAI-compatible) with a strict JSON schema.
+3. Stores a structured chapter — vocabulary, grammar, MC exercises, and a reading
+   passage with 5 comprehension questions — which can be viewed/edited in the portal
+   (structured editor, not raw JSON) and downloaded by the app.
 
 The chapter JSON shape matches the iOS app's content model exactly.
 
@@ -107,7 +106,8 @@ The chapter JSON shape matches the iOS app's content model exactly.
 - `GET/POST /api/admin/homework`, `DELETE /api/admin/homework/{id}`
 
 **Textbooks (Goal B)**
-- `GET/POST /api/admin/textbooks`, `POST /api/admin/textbooks/upload`, `DELETE /api/admin/textbooks/{id}`
+- `GET/POST /api/admin/textbooks`, `DELETE /api/admin/textbooks/{id}`
+- `POST /api/admin/chapters/upload` (multipart: `file`, `textbook_id`, optional `number`/`title`) — one chapter per upload
 - `GET/POST /api/admin/chapters`, `GET/PUT/DELETE /api/admin/chapters/{id}`
 - `POST /api/admin/chapters/{id}/assign` (body `{form_ids: [..]}`)
 - `GET /api/admin/forms/{form_id}/chapters`

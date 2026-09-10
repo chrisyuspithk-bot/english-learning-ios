@@ -119,3 +119,11 @@ def process_file(filename: str, content: bytes) -> List[dict]:
     """Extract text from an uploaded file and turn it into structured chapters."""
     text = extract_text(filename, content)
     return [extract_chapter(chunk) for chunk in split_chapters(text)]
+
+
+def process_chapter(filename: str, content: bytes) -> dict:
+    """Extract a single structured chapter from an uploaded file (no chapter splitting)."""
+    text = extract_text(filename, content)
+    if not text.strip():
+        raise ValueError("Could not extract any text from the file")
+    return extract_chapter(text[:RAG_CHUNK_CHARS])

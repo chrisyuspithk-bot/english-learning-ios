@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi import Form as FormField
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -132,6 +133,48 @@ def create_chapter(body: ChapterCreate, _: dict = Depends(current_admin), db: Se
         grammar=body.grammar,
         exercises=body.exercises,
         reading=body.reading,
+    )
+    db.add(chapter)
+    db.commit()
+    db.refresh(chapter)
+    return serialize(chapter)
+
+
+@router.post("/chapters/upload")
+async def upload_chapter(
+    file: UploadFile = File(...),
+    textbook_id: int = FormField(...),
+    number: int = FormField(0),
+    title: str = FormField(""),
+    _: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    """Upload a single chapter file. RAG -> LLM -> one structured chapter."""
+    _get(db, Textbook, textbook_id)
+    content = await file.read()
+    try:
+        data = rag.process_chapter(file.filename, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if number <= 0:
+        max_num = (
+            db.query(func.max(Chapter.number))
+            .filter(Chapter.textbook_id == textbook_id)
+            .scalar()
+            or 0
+        )
+        number = max_num + 1
+
+    chapter = Chapter(
+        textbook_id=textbook_id,
+        number=number,
+        title=(title.strip() or data.get("title") or f"Chapter {number}"),
+        subtitle=data.get("subtitle"),
+        vocabulary=data.get("vocabulary") or [],
+        grammar=data.get("grammar") or [],
+        exercises=data.get("exercises") or [],
+        reading=data.get("reading") or {},
     )
     db.add(chapter)
     db.commit()
