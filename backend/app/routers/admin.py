@@ -301,7 +301,9 @@ def import_students(
 ):
     """CSV with header row. Columns (case-insensitive):
     student_number, english_name, chinese_name, gender, date_of_birth,
-    guardian_name, guardian_phone, guardian_email, username, password, class_name
+    guardian_name, guardian_phone, guardian_email, username, password,
+    academic_year, form_name, form_level, class_name
+    (academic_year / form_name / class_name are auto-created if missing)
     """
     if classroom_id:
         _get(db, Classroom, classroom_id)
@@ -310,11 +312,16 @@ def import_students(
     reader = csv.DictReader(io.StringIO(content))
     created, errors = 0, []
 
+    default_ay = (
+        db.query(AcademicYear).filter(AcademicYear.is_current.is_(True)).first()
+        or db.query(AcademicYear).order_by(AcademicYear.id.desc()).first()
+    )
+
     for i, row in enumerate(reader, start=2):
         def col(*names):
             for n in names:
                 if n in row and row[n] not in (None, ""):
-                    return row[n]
+                    return str(row[n]).strip()
             return None
 
         english_name = col("english_name")
@@ -328,11 +335,50 @@ def import_students(
             errors.append({"row": i, "error": f"Username '{username}' already exists"})
             continue
 
-        # resolve class: explicit class_name column wins, else classroom_id param
+        # Resolve academic year (auto-create if missing)
+        ay = None
+        ay_name = col("academic_year", "academic_year_name", "year")
+        if ay_name:
+            ay = db.query(AcademicYear).filter(AcademicYear.name == ay_name).first()
+            if not ay:
+                ay = AcademicYear(name=ay_name, is_current=False)
+                db.add(ay)
+                db.flush()
+        ay = ay or default_ay
+
+        # Resolve form (auto-create if missing), scoped to the academic year
+        form = None
+        form_name = col("form_name", "form")
+        if form_name:
+            q = db.query(Form).filter(Form.name == form_name)
+            if ay:
+                q = q.filter(Form.academic_year_id == ay.id)
+            form = q.first()
+            if not form:
+                if not ay:
+                    errors.append({"row": i, "error": f"Cannot create form '{form_name}' without an academic year"})
+                    continue
+                level_raw = col("form_level")
+                try:
+                    level = int(level_raw) if level_raw else None
+                except ValueError:
+                    level = None
+                form = Form(academic_year_id=ay.id, name=form_name, level=level)
+                db.add(form)
+                db.flush()
+
+        # Resolve class (auto-create under the form if missing)
         target_class_id = classroom_id
         class_name = col("class_name")
         if class_name:
-            cls = db.query(Classroom).filter(Classroom.name == class_name).first()
+            q = db.query(Classroom).filter(Classroom.name == class_name)
+            if form:
+                q = q.filter(Classroom.form_id == form.id)
+            cls = q.first()
+            if not cls and form:
+                cls = Classroom(form_id=form.id, name=class_name)
+                db.add(cls)
+                db.flush()
             if cls:
                 target_class_id = cls.id
 

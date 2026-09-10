@@ -520,8 +520,10 @@ function ImportStudents({ classes, onDone }) {
     <Modal title="Import students (CSV)" onClose={onDone}>
       <p className="hint">
         CSV with header row. Columns: <code>english_name, chinese_name, gender, date_of_birth,
-        guardian_name, guardian_phone, guardian_email, username, password, student_number, class_name</code>.
+        guardian_name, guardian_phone, guardian_email, username, password, student_number,
+        academic_year, form_name, form_level, class_name</code>.
         Only <code>english_name</code> and <code>username</code> are required.
+        <code>academic_year</code>, <code>form_name</code> and <code>class_name</code> are auto-created if they don't exist yet.
       </p>
       <Field label="Assign to class (optional)">
         <select value={classroom_id} onChange={(e) => setClassroomId(e.target.value)}>
