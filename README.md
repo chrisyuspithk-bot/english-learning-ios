@@ -106,7 +106,7 @@ The chapter JSON shape matches the iOS app's content model exactly.
 - `GET/POST /api/admin/homework`, `DELETE /api/admin/homework/{id}`
 
 **Textbooks (Goal B)**
-- `GET/POST /api/admin/textbooks`, `DELETE /api/admin/textbooks/{id}`
+- `GET/POST /api/admin/textbooks` (POST accepts optional `form_id` to bind a textbook to a Form), `DELETE /api/admin/textbooks/{id}`
 - `POST /api/admin/chapters/upload` (multipart: `file`, `textbook_id`, optional `number`/`title`) — one chapter per upload
 - `GET/POST /api/admin/chapters`, `GET/PUT/DELETE /api/admin/chapters/{id}`
 - `POST /api/admin/chapters/{id}/assign` (body `{form_ids: [..]}`)

@@ -79,6 +79,7 @@ class TextbookCreate(BaseModel):
     title: str
     subject: Optional[str] = None
     level: Optional[str] = None
+    form_id: Optional[int] = None
 
 
 class ChapterCreate(BaseModel):
