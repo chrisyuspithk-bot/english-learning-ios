@@ -834,6 +834,7 @@ function ChapterPreview({ chapter, onBack, onClose }) {
 
 function ChapterEditor({ chapter, onDone }) {
   const [data, setData] = useState(() => ({
+    number: chapter.number || 1,
     title: chapter.title || '',
     subtitle: chapter.subtitle || '',
     vocabulary: (chapter.vocabulary || []).map(normVocab),
@@ -863,14 +864,15 @@ function ChapterEditor({ chapter, onDone }) {
   if (preview) return <ChapterPreview chapter={data} onBack={() => setPreview(false)} onClose={onDone} />
 
   return (
-    <Modal title={`Edit chapter ${chapter.number} — ${chapter.title}`} onClose={onDone} wide>
+    <Modal title={`Edit chapter ${data.number} — ${data.title || 'Untitled'}`} onClose={onDone} wide>
       <div className="toolbar">
         <button className="ghost" onClick={() => setPreview(true)}>👁 Preview</button>
       </div>
       <div className="grid-2">
-        <Field label="Title"><input value={data.title} onChange={(e) => set('title', e.target.value)} /></Field>
-        <Field label="Subtitle"><input value={data.subtitle} onChange={(e) => set('subtitle', e.target.value)} /></Field>
+        <Field label="Chapter number"><input type="number" min="1" value={data.number} onChange={(e) => set('number', Number(e.target.value) || 1)} /></Field>
+        <Field label="Chapter name"><input value={data.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Healthy Living" /></Field>
       </div>
+      <Field label="Subtitle"><input value={data.subtitle} onChange={(e) => set('subtitle', e.target.value)} /></Field>
 
       <Section title={`Vocabulary (${data.vocabulary.length})`} onAdd={() => set('vocabulary', [...data.vocabulary, blankVocab()])}>
         {data.vocabulary.map((v, i) => (
