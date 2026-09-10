@@ -71,7 +71,9 @@ date of birth, guardian name/phone/email, student number, username + password,
 status (active/disabled), and class assignment.
 
 To reduce admin effort: **bulk import students from CSV**, **bulk-create classes**
-(e.g. `5A, 5B, 5C`), and batch delete.
+(e.g. `5A, 5B, 5C`), and batch delete. The CSV import accepts optional
+`academic_year`, `form_name`, `form_level`, and `class_name` columns and
+auto-creates missing academic years, forms, and classes.
 
 ---
 
