@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, upload, getToken, setToken, clearToken } from './api'
 
+const LEVELS = ['Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6']
+
 // ---------------------------------------------------------------------------
 // Shared UI
 // ---------------------------------------------------------------------------
@@ -601,7 +603,11 @@ function NewTextbook({ onDone }) {
       <p className="hint">Create a textbook (e.g. "Primary 5 English"), then upload each chapter separately.</p>
       <Field label="Title *"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Primary 5 English" /></Field>
       <Field label="Subject"><input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
-      <Field label="Level"><input value={level} onChange={(e) => setLevel(e.target.value)} /></Field>
+      <Field label="Level">
+        <select value={level} onChange={(e) => setLevel(e.target.value)}>
+          {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </Field>
       {error && <ErrorBox msg={error} />}
       <button className="primary" onClick={save}>Create</button>
     </Modal>
