@@ -27,6 +27,20 @@ def _textbook_dict(t, db):
     return d
 
 
+def _auto_assign(db: Session, chapter_id: int, textbook: Textbook) -> None:
+    """Auto-assign a chapter to its textbook's form (if the textbook is bound)."""
+    if not textbook.form_id:
+        return
+    exists = (
+        db.query(ChapterAssignment)
+        .filter(ChapterAssignment.chapter_id == chapter_id,
+                ChapterAssignment.form_id == textbook.form_id)
+        .first()
+    )
+    if not exists:
+        db.add(ChapterAssignment(chapter_id=chapter_id, form_id=textbook.form_id))
+
+
 # --------------------------------------------------------------------------- #
 # Textbooks
 # --------------------------------------------------------------------------- #
@@ -125,7 +139,7 @@ def get_chapter(chapter_id: int, _: dict = Depends(current_admin), db: Session =
 
 @router.post("/chapters")
 def create_chapter(body: ChapterCreate, _: dict = Depends(current_admin), db: Session = Depends(get_db)):
-    _get(db, Textbook, body.textbook_id)
+    textbook = _get(db, Textbook, body.textbook_id)
     chapter = Chapter(
         textbook_id=body.textbook_id,
         number=body.number,
@@ -139,6 +153,8 @@ def create_chapter(body: ChapterCreate, _: dict = Depends(current_admin), db: Se
         reading=body.reading,
     )
     db.add(chapter)
+    db.flush()
+    _auto_assign(db, chapter.id, textbook)
     db.commit()
     db.refresh(chapter)
     return serialize(chapter)
@@ -154,7 +170,7 @@ async def upload_chapter(
     db: Session = Depends(get_db),
 ):
     """Upload a single chapter file. RAG -> LLM -> one structured chapter."""
-    _get(db, Textbook, textbook_id)
+    textbook = _get(db, Textbook, textbook_id)
     content = await file.read()
     try:
         data = rag.process_chapter(file.filename, content)
@@ -181,6 +197,8 @@ async def upload_chapter(
         reading=data.get("reading") or {},
     )
     db.add(chapter)
+    db.flush()
+    _auto_assign(db, chapter.id, textbook)
     db.commit()
     db.refresh(chapter)
     return serialize(chapter)
