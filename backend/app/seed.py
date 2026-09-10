@@ -38,7 +38,7 @@ def _seed_sample(db):
                 username="ben", password_hash=hash_password("student123"), status="active"),
     ])
 
-    textbook = Textbook(title="Primary 5 English", subject="English", level="Primary 5")
+    textbook = Textbook(title="Primary 5 English", subject="English", level="Primary 5", form_id=p5.id)
     db.add(textbook)
     db.flush()
 

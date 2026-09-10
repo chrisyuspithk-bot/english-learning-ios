@@ -23,6 +23,7 @@ def _get(db: Session, model, obj_id: int):
 def _textbook_dict(t, db):
     d = serialize(t)
     d["chapter_count"] = db.query(Chapter).filter(Chapter.textbook_id == t.id).count()
+    d["form_name"] = db.get(Form, t.form_id).name if t.form_id else None
     return d
 
 
@@ -39,7 +40,10 @@ def list_textbooks(_: dict = Depends(current_admin), db: Session = Depends(get_d
 
 @router.post("/textbooks")
 def create_textbook(body: TextbookCreate, _: dict = Depends(current_admin), db: Session = Depends(get_db)):
-    t = Textbook(title=body.title, subject=body.subject, level=body.level)
+    level = body.level
+    if body.form_id:
+        level = _get(db, Form, body.form_id).name
+    t = Textbook(title=body.title, subject=body.subject, level=level, form_id=body.form_id)
     db.add(t)
     db.commit()
     db.refresh(t)

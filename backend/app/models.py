@@ -78,9 +78,11 @@ class Textbook(Base):
     title = Column(String, nullable=False)
     subject = Column(String, nullable=True)
     level = Column(String, nullable=True)
+    form_id = Column(Integer, ForeignKey("forms.id"), nullable=True)
     created_at = Column(DateTime, default=now)
 
     chapters = relationship("Chapter", back_populates="textbook", cascade="all, delete-orphan")
+    form = relationship("Form")
 
 
 class Chapter(Base):

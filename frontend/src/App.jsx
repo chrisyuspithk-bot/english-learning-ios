@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, upload, getToken, setToken, clearToken } from './api'
 
-const LEVELS = ['Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6']
-
 // ---------------------------------------------------------------------------
 // Shared UI
 // ---------------------------------------------------------------------------
@@ -560,7 +558,7 @@ function Textbooks() {
             <tr key={t.id}>
               <td>{t.title}</td>
               <td>{t.subject || '—'}</td>
-              <td>{t.level || '—'}</td>
+              <td>{t.form_name || t.level || '—'}</td>
               <td>{t.chapter_count} chapters</td>
               <td>
                 <button className="link" onClick={() => setOpenBook(t)}>Chapters</button>
@@ -570,7 +568,7 @@ function Textbooks() {
           ))}
         </Table>
       )}
-      {creating && <NewTextbook onDone={() => { setCreating(false); state.reload() }} />}
+      {creating && <NewTextbook forms={forms.data || []} onDone={() => { setCreating(false); state.reload() }} />}
       {openBook && (
         <Chapters book={openBook}
           onClose={() => setOpenBook(null)}
@@ -583,15 +581,15 @@ function Textbooks() {
   )
 }
 
-function NewTextbook({ onDone }) {
+function NewTextbook({ forms, onDone }) {
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('English')
-  const [level, setLevel] = useState('Primary 5')
+  const [formId, setFormId] = useState('')
   const [error, setError] = useState(null)
 
   async function save() {
     try {
-      await api.post('/admin/textbooks', { title, subject, level })
+      await api.post('/admin/textbooks', { title, subject, form_id: formId ? Number(formId) : null })
       onDone()
     } catch (e) {
       setError(e.message)
@@ -603,9 +601,10 @@ function NewTextbook({ onDone }) {
       <p className="hint">Create a textbook (e.g. "Primary 5 English"), then upload each chapter separately.</p>
       <Field label="Title *"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Primary 5 English" /></Field>
       <Field label="Subject"><input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
-      <Field label="Level">
-        <select value={level} onChange={(e) => setLevel(e.target.value)}>
-          {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+      <Field label="Form (level)">
+        <select value={formId} onChange={(e) => setFormId(e.target.value)}>
+          <option value="">— Select form —</option>
+          {forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
       </Field>
       {error && <ErrorBox msg={error} />}
