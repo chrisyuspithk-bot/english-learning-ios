@@ -4,19 +4,20 @@ A full-stack English learning system for Hong Kong primary schools, in three par
 
 | Part | Path | What it is |
 |------|------|------------|
-| iOS app | `EnglishLearningApp/` | SwiftUI POC (iOS 13+) — Apple Speech STT + Piper TTS |
+| iOS app | `EnglishLearningApp/` | SwiftUI app (iOS 13+) — Apple Speech STT + Piper TTS |
 | Portal backend | `backend/` | FastAPI REST API + RAG/LLM textbook processing |
 | Admin portal | `frontend/` | Responsive React (Vite) web app |
 
-## Goals
+## Features
 
-- **Goal A** — Admin CRUD: academic years → forms → classes → students (import CSV, disable, batch delete). ✅
-- **Goal B** — Textbook upload (PDF / TXT / DOCX) → RAG → LLM → structured chapters (vocabulary / grammar / exercises / reading). ✅
-- **Goal C** — Verified end-to-end (backend endpoints + portal UI tested). ✅
-- **Goal D** — REST API for the app (login, dashboard, chapter download, submit records). ✅
-- **Goal E** — Bind the iOS app to the API. ✅
-
----
+- **School admin** — academic years → forms → classes → students, with CSV import
+  (auto-creates years/forms/classes), disable, and batch delete.
+- **Textbook pipeline** — upload a chapter (PDF / TXT / DOCX) and it becomes a
+  structured chapter (vocabulary, grammar, MC exercises, reading) via RAG + LLM.
+- **Student app API** — login, dashboard, chapter download, and practice-record
+  submission.
+- **iOS app** — logs in and loads chapters, homework and announcements from the API;
+  Apple Speech powers pronunciation practice and Piper provides TTS.
 
 ## Quick start
 
@@ -55,15 +56,13 @@ cd frontend
 npm run dev   # http://localhost:5173 (proxies /api → :8000)
 ```
 
----
-
-## Data model (Goal A — the "simpler way")
+## Data model
 
 ```
 Academic Year ("2026-2027")
    └── Form ("Primary 5")              ← grade / level
           └── Class ("5A", "5B")       ← a class within a form
-                 └── Student           ← essential info below
+                 └── Student
 ```
 
 Student fields (primary-school context): English name, Chinese name, gender,
@@ -75,29 +74,27 @@ To reduce admin effort: **bulk import students from CSV**, **bulk-create classes
 `academic_year`, `form_name`, `form_level`, and `class_name` columns and
 auto-creates missing academic years, forms, and classes.
 
----
-
-## Textbook pipeline (Goal B)
+## Textbook pipeline
 
 Teachers upload **one chapter at a time**. For each chapter, upload a PDF / TXT / DOCX:
 
 1. Extracts raw text (`pypdf` / `python-docx` / plain text).
 2. Sends the chapter text to the LLM (OpenAI-compatible) with a strict JSON schema.
 3. Stores a structured chapter — vocabulary, grammar, MC exercises, and a reading
-   passage with 5 comprehension questions — which can be viewed/edited in the portal
-   (structured editor, not raw JSON) and downloaded by the app.
+   passage with 5 comprehension questions — viewable/editable in the portal
+   (structured editor, not raw JSON) and downloadable by the app.
 
-The chapter JSON shape matches the iOS app's content model exactly.
+The chapter JSON shape matches the iOS app's content model. Chapters are
+auto-assigned to their textbook's bound form, so students in that form see them
+immediately.
 
----
-
-## REST API summary (Goals A + D)
+## REST API
 
 **Auth**
 - `POST /api/auth/admin/login`
 - `POST /api/auth/student/login`
 
-**Admin (Goal A)**
+**Admin**
 - `GET/POST /api/admin/academic-years`, `PUT/DELETE /api/admin/academic-years/{id}`
 - `GET/POST /api/admin/forms`, `PUT/DELETE /api/admin/forms/{id}`
 - `GET/POST /api/admin/classes`, `POST /api/admin/classes/bulk`, `PUT/DELETE /api/admin/classes/{id}`
@@ -107,22 +104,19 @@ The chapter JSON shape matches the iOS app's content model exactly.
 - `GET/POST /api/admin/announcements`, `DELETE /api/admin/announcements/{id}`
 - `GET/POST /api/admin/homework`, `DELETE /api/admin/homework/{id}`
 
-**Textbooks (Goal B)**
+**Textbooks**
 - `GET/POST /api/admin/textbooks` (POST accepts optional `form_id` to bind a textbook to a Form), `DELETE /api/admin/textbooks/{id}`
 - `POST /api/admin/chapters/upload` (multipart: `file`, `textbook_id`, optional `number`/`title`) — one chapter per upload
 - `GET/POST /api/admin/chapters`, `GET/PUT/DELETE /api/admin/chapters/{id}`
-- Chapters are auto-assigned to their textbook's bound form on create/upload.
 
-**App-facing (Goal D)**
+**App-facing**
 - `GET /api/app/dashboard` — student + assigned chapters + homework + announcements
 - `GET /api/app/chapters/{id}` — full chapter content
 - `POST /api/app/records`, `GET /api/app/records` — submit / list practice records
 
 All admin endpoints require `Authorization: Bearer <token>`.
 
----
-
-## Goal E — binding the iOS app ✅
+## iOS app
 
 The app talks to the backend:
 
@@ -135,10 +129,8 @@ The app talks to the backend:
 Set the backend URL in `EnglishLearningApp/Sources/Services/AuthService.swift`
 (`APIClient.baseURL`). ATS is relaxed for local HTTP in `Info.plist`.
 
-The practice-records API (`POST /api/app/records`) is in place and can be wired to
-the Exercise / Vocabulary / Reading views to record student results.
-
----
+The practice-records API (`POST /api/app/records`) is available to record results
+from the Exercise / Vocabulary / Reading views.
 
 ## Directory structure
 
