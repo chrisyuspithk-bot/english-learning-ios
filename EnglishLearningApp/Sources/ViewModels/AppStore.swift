@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Central observable state for the POC, injected into the view hierarchy
+/// Central observable state for the app, injected into the view hierarchy
 /// via `.environmentObject(...)`. Kept as a single object for iOS 13
 /// compatibility (no `@StateObject` needed).
 final class AppStore: ObservableObject {
@@ -13,10 +13,15 @@ final class AppStore: ObservableObject {
     @Published var loginError: String?
 
     // MARK: - Content state
-    @Published var chapters: [Chapter] = []
+    @Published var chapters: [ChapterSummary] = []
     @Published var homework: [HomeworkSession] = []
     @Published var announcements: [Announcement] = []
     @Published var isLoadingContent = false
+    @Published var contentError: String?
+
+    // MARK: - Chapter detail state
+    @Published var chapterDetail: Chapter?
+    @Published var isLoadingChapter = false
 
     // MARK: - Shared services
     let tts: TTSProviding
@@ -38,8 +43,8 @@ final class AppStore: ObservableObject {
             guard let self = self else { return }
             self.isLoggingIn = false
             switch result {
-            case .success(let user):
-                self.user = user
+            case .success(let payload):
+                self.user = payload.user
                 self.isAuthenticated = true
                 self.loadContent()
             case .failure(let error):
@@ -49,11 +54,13 @@ final class AppStore: ObservableObject {
     }
 
     func logout() {
+        APIClient.shared.token = nil
         user = nil
         isAuthenticated = false
         chapters = []
         homework = []
         announcements = []
+        chapterDetail = nil
         speech.stop()
         tts.stop()
     }
@@ -62,16 +69,35 @@ final class AppStore: ObservableObject {
 
     func loadContent() {
         isLoadingContent = true
+        contentError = nil
+        content.loadDashboard { [weak self] result in
+            guard let self = self else { return }
+            self.isLoadingContent = false
+            switch result {
+            case .success(let payload):
+                self.user = payload.user
+                self.chapters = payload.chapters
+                self.homework = payload.homework
+                self.announcements = payload.announcements
+            case .failure(let error):
+                self.contentError = error.localizedDescription
+            }
+        }
+    }
 
-        content.loadTextbook { [weak self] textbook in
-            self?.chapters = textbook.chapters
-            self?.isLoadingContent = false
-        }
-        content.loadHomework { [weak self] homework in
-            self?.homework = homework
-        }
-        content.loadAnnouncements { [weak self] announcements in
-            self?.announcements = announcements
+    func loadChapterDetail(id: String) {
+        guard chapterDetail?.id != id else { return }
+        isLoadingChapter = true
+        chapterDetail = nil
+        content.loadChapter(id: id) { [weak self] result in
+            guard let self = self else { return }
+            self.isLoadingChapter = false
+            switch result {
+            case .success(let chapter):
+                self.chapterDetail = chapter
+            case .failure:
+                self.contentError = "Could not load this chapter."
+            }
         }
     }
 }

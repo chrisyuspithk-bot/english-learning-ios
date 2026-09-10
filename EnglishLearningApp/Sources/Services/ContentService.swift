@@ -1,24 +1,40 @@
 import Foundation
 
-/// Loads the dummy learning content. Swap the bodies for real API calls later.
+/// Loads learning content from the backend `GET /api/app/*` endpoints.
 final class ContentService {
 
-    func loadTextbook(completion: @escaping (Textbook) -> Void) {
-        // Simulate a short fetch.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            completion(SampleContent.textbook)
+    func loadDashboard(completion: @escaping (Result<DashboardPayload, Error>) -> Void) {
+        APIClient.shared.request("/api/app/dashboard") { (result: Result<DashboardResponse, Error>) in
+            switch result {
+            case .success(let response):
+                let payload = DashboardPayload(
+                    user: APIMapper.user(from: response),
+                    chapters: APIMapper.chapterSummaries(from: response.chapters),
+                    homework: APIMapper.homework(from: response.homework),
+                    announcements: APIMapper.announcements(from: response.announcements)
+                )
+                completion(.success(payload))
+            case .failure(let error):
+                completion(.failure(error))
+            }
         }
     }
 
-    func loadHomework(completion: @escaping ([HomeworkSession]) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            completion(SampleContent.homework)
+    func loadChapter(id: String, completion: @escaping (Result<Chapter, Error>) -> Void) {
+        APIClient.shared.request("/api/app/chapters/\(id)") { (result: Result<ChapterDetailResponse, Error>) in
+            switch result {
+            case .success(let response):
+                completion(.success(APIMapper.chapter(from: response)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
         }
     }
+}
 
-    func loadAnnouncements(completion: @escaping ([Announcement]) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            completion(SampleContent.announcements)
-        }
-    }
+struct DashboardPayload {
+    let user: User
+    let chapters: [ChapterSummary]
+    let homework: [HomeworkSession]
+    let announcements: [Announcement]
 }
