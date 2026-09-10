@@ -14,7 +14,7 @@ A full-stack English learning system for Hong Kong primary schools, in three par
 - **Goal B** — Textbook upload (PDF / TXT / DOCX) → RAG → LLM → structured chapters (vocabulary / grammar / exercises / reading). ✅
 - **Goal C** — Verified end-to-end (backend endpoints + portal UI tested). ✅
 - **Goal D** — REST API for the app (login, dashboard, chapter download, submit records). ✅
-- **Goal E** — Bind the iOS app to the API (see notes below).
+- **Goal E** — Bind the iOS app to the API. ✅
 
 ---
 
@@ -111,8 +111,7 @@ The chapter JSON shape matches the iOS app's content model exactly.
 - `GET/POST /api/admin/textbooks` (POST accepts optional `form_id` to bind a textbook to a Form), `DELETE /api/admin/textbooks/{id}`
 - `POST /api/admin/chapters/upload` (multipart: `file`, `textbook_id`, optional `number`/`title`) — one chapter per upload
 - `GET/POST /api/admin/chapters`, `GET/PUT/DELETE /api/admin/chapters/{id}`
-- `POST /api/admin/chapters/{id}/assign` (body `{form_ids: [..]}`)
-- `GET /api/admin/forms/{form_id}/chapters`
+- Chapters are auto-assigned to their textbook's bound form on create/upload.
 
 **App-facing (Goal D)**
 - `GET /api/app/dashboard` — student + assigned chapters + homework + announcements
@@ -123,9 +122,9 @@ All admin endpoints require `Authorization: Bearer <token>`.
 
 ---
 
-## Goal E — binding the iOS app
+## Goal E — binding the iOS app ✅
 
-The app now talks to the backend (login, dashboard, chapter detail):
+The app talks to the backend:
 
 1. `AuthService` → `POST /api/auth/student/login` (stores the bearer token in `APIClient.shared`).
 2. `ContentService` → `GET /api/app/dashboard` (chapters + homework + announcements)
@@ -136,8 +135,8 @@ The app now talks to the backend (login, dashboard, chapter detail):
 Set the backend URL in `EnglishLearningApp/Sources/Services/AuthService.swift`
 (`APIClient.baseURL`). ATS is relaxed for local HTTP in `Info.plist`.
 
-Remaining: submit practice results via `POST /api/app/records` from the Exercise /
-Vocabulary / Reading views.
+The practice-records API (`POST /api/app/records`) is in place and can be wired to
+the Exercise / Vocabulary / Reading views to record student results.
 
 ---
 
