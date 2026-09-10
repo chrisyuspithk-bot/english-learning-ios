@@ -54,7 +54,7 @@ struct HomeView: View {
                 Text("Hello, \(store.user?.englishName ?? "Student") 👋")
                     .font(.headline)
                     .fontWeight(.bold)
-                Text("\(store.user?.grade ?? "") · \(store.user?.school ?? "")")
+                Text(subtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -66,6 +66,12 @@ struct HomeView: View {
     private var initials: String {
         let name = store.user?.englishName ?? "S"
         return String(name.prefix(1))
+    }
+
+    private var subtitle: String {
+        let grade = store.user?.grade ?? ""
+        let school = store.user?.school ?? ""
+        return school.isEmpty ? grade : "\(grade) · \(school)"
     }
 
     // MARK: - Homework
@@ -141,7 +147,7 @@ struct HomeView: View {
             SectionHeader(title: "Chapters", icon: "books.vertical.fill")
 
             ForEach(store.chapters) { chapter in
-                NavigationLink(destination: ChapterDetailView(chapter: chapter)) {
+                NavigationLink(destination: ChapterDetailView(summary: chapter)) {
                     chapterRow(chapter)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -149,7 +155,7 @@ struct HomeView: View {
         }
     }
 
-    private func chapterRow(_ chapter: Chapter) -> some View {
+    private func chapterRow(_ chapter: ChapterSummary) -> some View {
         HStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)

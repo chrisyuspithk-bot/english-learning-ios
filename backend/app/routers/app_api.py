@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import (Announcement, Chapter, ChapterAssignment, Classroom,
-                      Homework, PracticeRecord, Student)
+                      Form, Homework, PracticeRecord, Student)
 from ..schemas import RecordCreate
 from ..security import current_user
 from ..serialize import serialize
@@ -59,7 +59,16 @@ def dashboard(payload: dict = Depends(current_user), db: Session = Depends(get_d
             .order_by(Homework.created_at.desc())
             .all()
         )
-        homework = [serialize(h) for h in hw]
+        for h in hw:
+            d = serialize(h)
+            chapter = db.get(Chapter, h.chapter_id) if h.chapter_id else None
+            d["chapter_title"] = chapter.title if chapter else None
+            homework.append(d)
+
+    class_data = serialize(classroom) if classroom else None
+    if class_data:
+        form = db.get(Form, classroom.form_id)
+        class_data["form_name"] = form.name if form else None
 
     announcements = (
         db.query(Announcement).order_by(Announcement.created_at.desc()).all()
@@ -67,7 +76,7 @@ def dashboard(payload: dict = Depends(current_user), db: Session = Depends(get_d
 
     return {
         "student": serialize(student, exclude={"password_hash"}),
-        "class": serialize(classroom) if classroom else None,
+        "class": class_data,
         "chapters": chapters,
         "homework": homework,
         "announcements": [serialize(a) for a in announcements],

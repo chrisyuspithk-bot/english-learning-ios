@@ -51,5 +51,10 @@
 	<string>This app uses the microphone so you can practise your English pronunciation.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app uses speech recognition to check your pronunciation and give you feedback.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

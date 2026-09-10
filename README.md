@@ -125,15 +125,19 @@ All admin endpoints require `Authorization: Bearer <token>`.
 
 ## Goal E — binding the iOS app
 
-The iOS app currently uses bundled sample data. To bind it to the API:
+The app now talks to the backend (login, dashboard, chapter detail):
 
-1. Point the app's base URL at your backend and call `/api/auth/student/login`,
-   then `/api/app/dashboard` and `/api/app/chapters/{id}`.
-2. Map backend IDs (integers) to the app's `Codable` models (the app's sample
-   models use `String` ids — either switch them to `Int`, or assign ids client-side
-   by index). The field names already line up (`vocabulary`, `grammar`, `exercises`,
-   `reading`, `colorHex`, etc.).
-3. Submit results via `POST /api/app/records` (type: `vocabulary` / `exercise` / `reading`).
+1. `AuthService` → `POST /api/auth/student/login` (stores the bearer token in `APIClient.shared`).
+2. `ContentService` → `GET /api/app/dashboard` (chapters + homework + announcements)
+   and `GET /api/app/chapters/{id}` (full chapter detail).
+3. `Models.swift` holds the API DTOs and `APIMapper` maps them to the app's view
+   models (client-side `String` ids are generated for list items).
+
+Set the backend URL in `EnglishLearningApp/Sources/Services/AuthService.swift`
+(`APIClient.baseURL`). ATS is relaxed for local HTTP in `Info.plist`.
+
+Remaining: submit practice results via `POST /api/app/records` from the Exercise /
+Vocabulary / Reading views.
 
 ---
 

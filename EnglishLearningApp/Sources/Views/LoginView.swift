@@ -66,7 +66,7 @@ struct LoginView: View {
                     }
                     .disabled(store.isLoggingIn)
 
-                    Text("Demo: any username and password")
+                    Text("Demo: amy / student123")
                         .font(.footnote)
                         .foregroundColor(.white.opacity(0.8))
                 }
