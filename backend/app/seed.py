@@ -12,14 +12,19 @@ def _seed_sample(db):
     db.add(ay)
     db.flush()
 
-    p5 = Form(academic_year_id=ay.id, name="Primary 5", level=5)
-    p6 = Form(academic_year_id=ay.id, name="Primary 6", level=6)
-    db.add_all([p5, p6])
+    forms = {}
+    for level in range(1, 7):
+        forms[level] = Form(academic_year_id=ay.id, name=f"Primary {level}", level=level)
+    db.add_all(forms.values())
     db.flush()
 
-    c5a = Classroom(form_id=p5.id, name="5A")
+    p5 = forms[5]
+
+    # one class per form, plus an extra class under Primary 5
+    class_by_form = {level: Classroom(form_id=form.id, name=f"{level}A") for level, form in forms.items()}
+    c5a = class_by_form[5]
     c5b = Classroom(form_id=p5.id, name="5B")
-    db.add_all([c5a, c5b])
+    db.add_all(list(class_by_form.values()) + [c5b])
     db.flush()
 
     db.add_all([
