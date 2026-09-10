@@ -107,10 +107,6 @@ class ChapterUpdate(BaseModel):
     reading: Optional[dict] = None
 
 
-class ChapterAssignRequest(BaseModel):
-    form_ids: List[int]
-
-
 class AnnouncementCreate(BaseModel):
     title: str
     body: Optional[str] = None

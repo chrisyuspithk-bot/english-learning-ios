@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Chapter, ChapterAssignment, Form, Textbook
-from ..schemas import ChapterAssignRequest, ChapterCreate, ChapterUpdate, TextbookCreate
+from ..schemas import ChapterCreate, ChapterUpdate, TextbookCreate
 from ..security import current_admin
 from ..serialize import serialize
 from ..services import rag
@@ -131,10 +131,7 @@ def list_chapters(textbook_id: int = Query(None), _: dict = Depends(current_admi
 @router.get("/chapters/{chapter_id}")
 def get_chapter(chapter_id: int, _: dict = Depends(current_admin), db: Session = Depends(get_db)):
     chapter = _get(db, Chapter, chapter_id)
-    d = serialize(chapter)
-    form_ids = [a.form_id for a in chapter.assignments]
-    d["assigned_form_ids"] = form_ids
-    return d
+    return serialize(chapter)
 
 
 @router.post("/chapters")
@@ -221,31 +218,3 @@ def delete_chapter(chapter_id: int, _: dict = Depends(current_admin), db: Sessio
     db.delete(chapter)
     db.commit()
     return {"ok": True}
-
-
-@router.post("/chapters/{chapter_id}/assign")
-def assign_chapter(chapter_id: int, body: ChapterAssignRequest, _: dict = Depends(current_admin), db: Session = Depends(get_db)):
-    chapter = _get(db, Chapter, chapter_id)
-    for f_id in body.form_ids:
-        _get(db, Form, f_id)
-    # replace existing assignments
-    db.query(ChapterAssignment).filter(ChapterAssignment.chapter_id == chapter_id).delete()
-    for f_id in body.form_ids:
-        db.add(ChapterAssignment(chapter_id=chapter_id, form_id=f_id))
-    db.commit()
-    d = serialize(chapter)
-    d["assigned_form_ids"] = body.form_ids
-    return d
-
-
-@router.get("/forms/{form_id}/chapters")
-def form_chapters(form_id: int, _: dict = Depends(current_admin), db: Session = Depends(get_db)):
-    _get(db, Form, form_id)
-    rows = (
-        db.query(Chapter)
-        .join(ChapterAssignment, ChapterAssignment.chapter_id == Chapter.id)
-        .filter(ChapterAssignment.form_id == form_id)
-        .order_by(Chapter.number)
-        .all()
-    )
-    return [serialize(c) for c in rows]
