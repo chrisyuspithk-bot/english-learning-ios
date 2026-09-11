@@ -195,6 +195,7 @@ struct VocabularyPracticeView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     private func toggleRecording() {
