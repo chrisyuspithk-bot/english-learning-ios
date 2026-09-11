@@ -22,6 +22,9 @@ struct VocabularyView: View {
         }
         .background(Theme.background)
         .navigationBarTitle("Vocabulary", displayMode: .inline)
+        .onAppear {
+            store.speech.requestAuthorization()
+        }
         .sheet(item: $practiceItem) { item in
             VocabularyPracticeView(item: item, speech: store.speech, tts: store.tts)
         }
@@ -181,16 +184,13 @@ struct VocabularyPracticeView: View {
                 Spacer()
             }
             .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.background.edgesIgnoringSafeArea(.all))
             .navigationBarTitle("Pronunciation", displayMode: .inline)
             .navigationBarItems(leading: Button("Done") {
                 speech.stop()
                 presentationMode.wrappedValue.dismiss()
             })
-            .onAppear {
-                if !speech.isAuthorized {
-                    speech.requestAuthorization()
-                }
-            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }

@@ -36,6 +36,7 @@ final class SpeechRecognizerService: NSObject, ObservableObject {
     private var recognizer: SFSpeechRecognizer?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
+    private var hasTapInstalled = false
 
     private let localeIdentifier: String
 
@@ -81,29 +82,43 @@ final class SpeechRecognizerService: NSObject, ObservableObject {
         // Cancel any in-flight session.
         stop(cleanupOnly: true)
 
-        try audioSession.setCategory(.playAndRecord,
-                                     mode: .measurement,
-                                     options: [.defaultToSpeaker, .allowBluetoothHFP])
-        // The built-in mic runs at 48 kHz; forcing the session to match avoids
-        // an AVAudioIONode crash ("format.sampleRate == hwFormat.sampleRate").
-        try audioSession.setPreferredSampleRate(48000)
+        // Drop any leftover playback session from TTS before capturing.
+        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+
+        try audioSession.setCategory(
+            .playAndRecord,
+            mode: .measurement,
+            options: [.defaultToSpeaker]
+        )
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        if #available(iOS 13, *) {
+            request.requiresOnDeviceRecognition = false
+        }
         self.request = request
 
         let inputNode = audioEngine.inputNode
-        // Use the hardware input format: `outputFormat(forBus:)` can report a
-        // sample rate that doesn't match the hardware and crash with
-        // "format.sampleRate == hwFormat.sampleRate".
-        let recordingFormat = inputNode.inputFormat(forBus: 0)
+        removeTapIfNeeded()
 
-        inputNode.installTap(onBus: 0,
-                             bufferSize: 1024,
-                             format: recordingFormat) { [weak self] buffer, _ in
+        // Use the live hardware rate after setActive. Never hardcode 48000.
+        let hwRate = audioSession.sampleRate
+        guard hwRate > 0,
+              let recordingFormat = AVAudioFormat(
+                  commonFormat: .pcmFormatFloat32,
+                  sampleRate: hwRate,
+                  channels: 1,
+                  interleaved: false
+              )
+        else {
+            throw SpeechRecognizerError.recognitionUnavailable
+        }
+
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.request?.append(buffer)
         }
+        hasTapInstalled = true
 
         audioEngine.prepare()
         try audioEngine.start()
@@ -135,10 +150,10 @@ final class SpeechRecognizerService: NSObject, ObservableObject {
         request?.endAudio()
         request = nil
 
+        removeTapIfNeeded()
         if audioEngine.isRunning {
             audioEngine.stop()
         }
-        audioEngine.inputNode.removeTap(onBus: 0)
 
         if !cleanupOnly {
             state = .idle
@@ -149,11 +164,17 @@ final class SpeechRecognizerService: NSObject, ObservableObject {
     private func teardown() {
         request = nil
         task = nil
+        removeTapIfNeeded()
         if audioEngine.isRunning {
             audioEngine.stop()
         }
-        audioEngine.inputNode.removeTap(onBus: 0)
         state = .idle
+    }
+
+    private func removeTapIfNeeded() {
+        guard hasTapInstalled else { return }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        hasTapInstalled = false
     }
 }
 
