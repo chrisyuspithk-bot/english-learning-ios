@@ -16,6 +16,7 @@ final class SystemTTSProvider: NSObject, TTSProviding {
 
     func speak(_ text: String, rate: Float = 0.45) {
         stop()
+        configureAudioSessionForPlayback()
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = rate
@@ -25,6 +26,17 @@ final class SystemTTSProvider: NSObject, TTSProviding {
 
     func stop() {
         synthesizer.stopSpeaking(at: .immediate)
+    }
+
+    /// The speech-recogniser service sets the shared `AVAudioSession` to
+    /// `.playAndRecord` + `.measurement` for the microphone, which is not
+    /// suitable (and can be inaudible) for `AVSpeechSynthesizer`. Reconfigure
+    /// the session for playback before speaking so TTS is always audible and
+    /// is not silenced by the hardware mute switch.
+    private func configureAudioSessionForPlayback() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? session.setActive(true)
     }
 }
 
