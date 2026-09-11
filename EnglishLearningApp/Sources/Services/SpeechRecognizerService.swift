@@ -84,6 +84,9 @@ final class SpeechRecognizerService: NSObject, ObservableObject {
         try audioSession.setCategory(.playAndRecord,
                                      mode: .measurement,
                                      options: [.defaultToSpeaker, .allowBluetoothHFP])
+        // The built-in mic runs at 48 kHz; forcing the session to match avoids
+        // an AVAudioIONode crash ("format.sampleRate == hwFormat.sampleRate").
+        try audioSession.setPreferredSampleRate(48000)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
         let request = SFSpeechAudioBufferRecognitionRequest()

@@ -5,7 +5,6 @@ struct VocabularyView: View {
     @EnvironmentObject var store: AppStore
 
     @State private var practiceItem: VocabularyItem?
-    @State private var showPractice = false
 
     var body: some View {
         ScrollView {
@@ -23,10 +22,8 @@ struct VocabularyView: View {
         }
         .background(Theme.background)
         .navigationBarTitle("Vocabulary", displayMode: .inline)
-        .sheet(isPresented: $showPractice) {
-            if let item = practiceItem {
-                VocabularyPracticeView(item: item, speech: store.speech, tts: store.tts)
-            }
+        .sheet(item: $practiceItem) { item in
+            VocabularyPracticeView(item: item, speech: store.speech, tts: store.tts)
         }
     }
 
@@ -58,7 +55,7 @@ struct VocabularyView: View {
                     .cornerRadius(10)
                 }
 
-                Button(action: { practiceItem = item; showPractice = true }) {
+                Button(action: { practiceItem = item }) {
                     HStack(spacing: 6) {
                         Image(systemName: "mic.fill")
                         Text("Practise")
